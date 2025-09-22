@@ -190,4 +190,11 @@ public class AppUser {
         this.comments = comments;
     }
 
+    public int getAvgUserRating() {
+        return avgUserRating;
+    }
+
+    public void setAvgUserRating(int avgUserRating) {
+        this.avgUserRating = avgUserRating;
+    }
 }
