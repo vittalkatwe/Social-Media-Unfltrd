@@ -1,7 +1,9 @@
 package org.example.socialmediafirst.controller;
 
+import org.example.socialmediafirst.entities.Connections;
 import org.example.socialmediafirst.entities.UserRating;
 import org.example.socialmediafirst.model.AppUser;
+import org.example.socialmediafirst.repo.ConnectionRepo;
 import org.example.socialmediafirst.repo.RatingRepo;
 import org.example.socialmediafirst.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +27,17 @@ public class UserRatingController {
     @Autowired
     private UserController userController;
 
+    @Autowired
+    private ConnectionRepo connectionRepo;
+
     @PostMapping("/rate")
     public UserRating ratingUser(@RequestParam String toUsername, @RequestParam int rating) {
         if(rating<=0 || rating>10) throw new RuntimeException("rating must be between 1 and 10");
         UserRating userRating = new UserRating();
         AppUser fromUser = userRepo.findByEmail(userController.getCurrentUsername()).orElse(null);
         AppUser toUser = userRepo.findByEmail(toUsername).orElse(null);
+        Connections userConnection=connectionRepo.findByUserId1AndUserId2(fromUser.getId(), toUser.getId());
+        if(userConnection.isStatus()!=true) throw new RuntimeException("User can only rate when connected");
         if(fromUser.getEmail().equals(toUser.getEmail())) throw new RuntimeException("Cannot rate yourself");
         int flag=0;
         List<UserRating> firstRatings= ratingRepo.findAll();
