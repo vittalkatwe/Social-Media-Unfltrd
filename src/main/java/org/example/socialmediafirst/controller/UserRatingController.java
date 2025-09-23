@@ -1,7 +1,9 @@
 package org.example.socialmediafirst.controller;
 
+import org.example.socialmediafirst.entities.Connections;
 import org.example.socialmediafirst.entities.UserRating;
 import org.example.socialmediafirst.model.AppUser;
+import org.example.socialmediafirst.repo.ConnectionRepo;
 import org.example.socialmediafirst.repo.RatingRepo;
 import org.example.socialmediafirst.repo.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,21 +24,49 @@ public class UserRatingController {
     @Autowired
     private RatingRepo ratingRepo;
 
-    @GetMapping("/get")
-    public String getCurrentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getName();
-    }
+    @Autowired
+    private UserController userController;
+
+    @Autowired
+    private ConnectionRepo connectionRepo;
 
     @PostMapping("/rate")
     public UserRating ratingUser(@RequestParam String toUsername, @RequestParam int rating) {
+        if(rating<=0 || rating>10) throw new RuntimeException("rating must be between 1 and 10");
         UserRating userRating = new UserRating();
-        AppUser fromUser = userRepo.findByEmail(getCurrentUsername()).orElse(null);
+        AppUser fromUser = userRepo.findByEmail(userController.getCurrentUsername()).orElse(null);
         AppUser toUser = userRepo.findByEmail(toUsername).orElse(null);
-        userRating.setRaterUser(fromUser);
-        userRating.setRatedUser(toUser);
-        userRating.setRatingValue(rating);
+        Connections userConnection=connectionRepo.findByUserId1AndUserId2(fromUser.getId(), toUser.getId());
+        if(userConnection.isStatus()!=true) throw new RuntimeException("User can only rate when connected");
+        if(fromUser.getEmail().equals(toUser.getEmail())) throw new RuntimeException("Cannot rate yourself");
+        int flag=0;
+        List<UserRating> firstRatings= ratingRepo.findAll();
+        System.out.println(firstRatings);
+        for(UserRating first:firstRatings){
+            if(first.getRaterUser().getEmail().equals(fromUser.getEmail()) && first.getRatedUser().getEmail().equals(toUser.getEmail())){
+                UserRating changeRating = ratingRepo.getUserRatingByRaterUserAndRatedUser(fromUser.getEmail(), toUsername);
+                changeRating.setRatingValue(rating);
+                ratingRepo.save(changeRating);
+                flag=1;
+                userRating.setRaterUser(fromUser);
+                userRating.setRatedUser(toUser);
+                userRating.setRatingValue(rating);
+                break;
+            }
+        }
+        if(flag==0) {
+            userRating.setRaterUser(fromUser);
+            userRating.setRatedUser(toUser);
+            userRating.setRatingValue(rating);
+            ratingRepo.save(userRating);
+        }
+
         System.out.println(ratingRepo.getUserRatingByRatedUser(toUser.getEmail()));
+        List<UserRating> allRatings= ratingRepo.getUserRatingByRatedUser(toUser.getEmail());
+        int cnt=0;
+        for(UserRating u : allRatings) cnt+=u.getRatingValue();
+        toUser.setAvgUserRating(cnt/allRatings.size());
+        userRepo.save(toUser);
         return userRating;
     }
 }

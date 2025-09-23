@@ -25,5 +25,16 @@ public class MailService {
 
         return otp;
     }
+
+    public String sendConnectionRequest(Long fromId, Long toId) {
+        String email="vittalkatwe@gmail.com";
+        String connectionApi="http://localhost:8080/api/user/accept/from/"+fromId+"/"+toId;
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(email);
+        message.setSubject("Verify your account");
+        message.setText("Your connection api is: " + connectionApi);
+        mailSender.send(message);
+        return connectionApi;
+    }
 }
 

@@ -13,4 +13,7 @@ public interface RatingRepo extends JpaRepository<UserRating, Long> {
 
     @Query("select UR from UserRating UR where UR.ratedUser.email=?1")
     List<UserRating> getUserRatingByRatedUser(String email);
+
+    @Query("select UR from UserRating UR where UR.raterUser.email=?1 and UR.ratedUser.email=?2")
+    UserRating getUserRatingByRaterUserAndRatedUser(String fromUser, String toUser);
 }
